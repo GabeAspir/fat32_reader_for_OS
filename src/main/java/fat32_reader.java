@@ -1,11 +1,39 @@
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+
+
 public class fat32_reader {
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException {
         /*
         args[0] will be the .img
         Sooo, what to do with that
          */
+        File file = new File(args[0]);
+        String filePath = file.getAbsolutePath();
+        Path path = Paths.get(filePath);
+        byte[] myByteArray = Files.readAllBytes(path);
+        System.out.println(myByteArray[0]);
+
+//        System.out.println(file.getPath());
+//        System.out.println(file.getAbsolutePath());
+
+
+
+
+
+        //while(true){
+            /*
+            Scan for input from the user
+             */
+       // }
     }
+
+
 
 
     /**
@@ -143,6 +171,7 @@ public class fat32_reader {
     }
 
 
+
     /**
      * read <FILE_NAME> <OFFSET> <NUMBYTES>
      *
@@ -158,6 +187,8 @@ public class fat32_reader {
      *       /] read CONST.TXT 0 15
      *       Provided by USC
      *       /]
+     *
+     *
      *
      *       Unsuccessful reads
      *       /] read 10BYTES.TXT 5 5
