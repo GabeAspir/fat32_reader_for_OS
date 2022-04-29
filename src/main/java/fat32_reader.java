@@ -10,7 +10,7 @@ import java.util.Scanner;
 public class fat32_reader {
 
     static short BPB_BytesPerSec, BPB_RsvdSecCnt;
-    static int BPB_SecPerClus, BPB_NumFATS, BPB_FATSz32;
+    static int BPB_SecPerClus, BPB_NumFATS, BPB_FATSz32, FirstDataSector, BPB_RootClus;
 
     public static void main(String[] args) throws IOException {
         /*
@@ -46,16 +46,18 @@ public class fat32_reader {
         bb.rewind();
         BPB_FATSz32 = bb.getInt();
 
+        bb = ByteBuffer.allocate(4);
+        bb.put(myByteArray[47]);
+        bb.put(myByteArray[46]);
+        bb.put(myByteArray[45]);
+        bb.put(myByteArray[44]);
+        bb.rewind();
+        BPB_RootClus = bb.getInt();
 
+        FirstDataSector = BPB_RsvdSecCnt + (BPB_NumFATS * BPB_FATSz32);
 
-
-
-
-
-
-
-
-
+        int rootFirstSector = firstSectorOfCluster(BPB_RootClus);
+        System.out.println(rootFirstSector);
 
        
 
@@ -74,6 +76,9 @@ public class fat32_reader {
 
 
 
+    private static int firstSectorOfCluster(int clusterNumber) {
+        return ((clusterNumber - 2) * BPB_SecPerClus) + FirstDataSector;
+    }
 
     /**
      * stop
@@ -114,8 +119,6 @@ public class fat32_reader {
         System.out.println("BPB_RsvdSecCnt is 0x" + Integer.toHexString(BPB_RsvdSecCnt) + ", " + BPB_RsvdSecCnt);
         System.out.println("BPB_NumFATS is 0x" + Integer.toHexString(BPB_NumFATS) + ", " + BPB_NumFATS);
         System.out.println("BPB_FATSz32 is 0x" + Integer.toHexString(BPB_FATSz32) + ", " + BPB_FATSz32);
-
-
     }
 
     /**
