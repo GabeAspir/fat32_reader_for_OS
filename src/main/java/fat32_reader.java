@@ -1,12 +1,16 @@
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.Scanner;
 
 
 public class fat32_reader {
+
+    static short BPB_BytesPerSec, BPB_RsvdSecCnt;
+    static int BPB_SecPerClus, BPB_NumFATS, BPB_FATSz32;
 
     public static void main(String[] args) throws IOException {
         /*
@@ -17,20 +21,55 @@ public class fat32_reader {
         String filePath = file.getAbsolutePath();
         Path path = Paths.get(filePath);
         byte[] myByteArray = Files.readAllBytes(path);
-        System.out.println(myByteArray[0]);
+
+        ByteBuffer bb = ByteBuffer.allocate(2);
+        bb.put(myByteArray[12]);
+        bb.put(myByteArray[11]);
+        bb.rewind();
+        BPB_BytesPerSec = bb.getShort();
+
+        BPB_SecPerClus = myByteArray[13];
+
+        bb = ByteBuffer.allocate(2);
+        bb.put(myByteArray[15]);
+        bb.put(myByteArray[14]);
+        bb.rewind();
+        BPB_RsvdSecCnt = bb.getShort();
+
+        BPB_NumFATS = myByteArray[16];
+
+        bb = ByteBuffer.allocate(4);
+        bb.put(myByteArray[39]);
+        bb.put(myByteArray[38]);
+        bb.put(myByteArray[37]);
+        bb.put(myByteArray[36]);
+        bb.rewind();
+        BPB_FATSz32 = bb.getInt();
+
+
+
+
+
+
+
+
+
+
+
+
+       
 
 //        System.out.println(file.getPath());
 //        System.out.println(file.getAbsolutePath());
 
-
-
-
-
-        //while(true){
-            /*
-            Scan for input from the user
-             */
-       // }
+        Scanner scanner = new Scanner(System.in); 
+        while(true){
+            System.out.print("]");
+            String input = scanner.nextLine(); 
+            if (input.equals("stop")) break;
+            if (input.equals("info")) info();
+        }
+        scanner.close();
     }
 
 
@@ -69,7 +108,13 @@ public class fat32_reader {
      * different number of sectors per cluster, etc.,
      * and everything should still work correctly.
      */
-    public void info(){
+    public static void info(){
+        System.out.println("BPB_BytesPerSec is 0x" + Integer.toHexString(BPB_BytesPerSec) + ", " + BPB_BytesPerSec);
+        System.out.println("BPB_SecPerClus is 0x" + Integer.toHexString(BPB_SecPerClus) + ", " + BPB_SecPerClus);
+        System.out.println("BPB_RsvdSecCnt is 0x" + Integer.toHexString(BPB_RsvdSecCnt) + ", " + BPB_RsvdSecCnt);
+        System.out.println("BPB_NumFATS is 0x" + Integer.toHexString(BPB_NumFATS) + ", " + BPB_NumFATS);
+        System.out.println("BPB_FATSz32 is 0x" + Integer.toHexString(BPB_FATSz32) + ", " + BPB_FATSz32);
+
 
     }
 
