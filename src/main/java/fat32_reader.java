@@ -4,6 +4,10 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Scanner;
 
 
@@ -11,6 +15,11 @@ public class fat32_reader {
 
     static short BPB_BytesPerSec, BPB_RsvdSecCnt;
     static int BPB_SecPerClus, BPB_NumFATS, BPB_FATSz32, FirstDataSector, BPB_RootClus;
+    static byte[] myByteArray;
+    static LinkedList<Integer> pathClusters = new LinkedList<>();
+    static LinkedList<String> pathNames = new LinkedList<>();
+    static boolean running;
+    
 
     public static void main(String[] args) throws IOException {
         /*
@@ -20,7 +29,12 @@ public class fat32_reader {
         File file = new File(args[0]);
         String filePath = file.getAbsolutePath();
         Path path = Paths.get(filePath);
-        byte[] myByteArray = Files.readAllBytes(path);
+        try {
+            myByteArray = Files.readAllBytes(path);
+        } catch (Exception e) {
+            System.out.println("File Error");
+            System.exit(0);
+        }
 
         ByteBuffer bb = ByteBuffer.allocate(2);
         bb.put(myByteArray[12]);
@@ -53,40 +67,42 @@ public class fat32_reader {
         bb.put(myByteArray[44]);
         bb.rewind();
         BPB_RootClus = bb.getInt();
+        pathClusters.add(BPB_RootClus);
 
         FirstDataSector = BPB_RsvdSecCnt + (BPB_NumFATS * BPB_FATSz32);
 
-        int rootFirstSector = firstSectorOfCluster(BPB_RootClus);
-        System.out.println(rootFirstSector);
-
-       
-
+    
 //        System.out.println(file.getPath());
 //        System.out.println(file.getAbsolutePath());
-
+        running = true;
         Scanner scanner = new Scanner(System.in); 
-        while(true){
-            System.out.print("]");
+
+
+
+        while(running){
+            if (!pathNames.isEmpty()) {
+                System.out.print(pathNames.getLast());
+            }
+            System.out.print("] ");
             String input = scanner.nextLine(); 
-            if (input.equals("stop")) break;
-            if (input.equals("info")) info();
+            String[] arguments = input.split(" ");
+            if (arguments[0].equals("stop")) stop();
+            if (arguments[0].equals("info")) info();
+            if (arguments[0].equals("ls")) ls(arguments, pathClusters.getLast());
+            if (arguments[0].equals("cd")) cd(arguments, pathClusters.getLast());
+            if (arguments[0].equals("stat")) stat(arguments);
         }
         scanner.close();
     }
 
-
-
-    private static int firstSectorOfCluster(int clusterNumber) {
-        return ((clusterNumber - 2) * BPB_SecPerClus) + FirstDataSector;
-    }
 
     /**
      * stop
      *
      * Description: exits your shell-like utility
      */
-    public void stop(){
-
+    public static void stop(){
+        running = false;
     }
 
     /**
@@ -142,9 +158,325 @@ public class fat32_reader {
      *    Error: bob.txt is not a directory
      *    /]
      */
-    public void ls(){
+    public static void ls(String[] arguments, Integer CurrentCluster){
+        if (arguments.length < 2) {
+            System.out.println("Error: Not enough arguments");
+            return;
+        } else if (arguments.length > 2) {
+            System.out.println("Error: Too many arguments");
+            return;
+        } else if (arguments[1].equals(".")) {
+            listFilesFromCluster(pathClusters.getLast(), CurrentCluster);
+        } else if (arguments[1].toCharArray()[0] == '/') {
+            boolean exists = checkPath(arguments[1], CurrentCluster);
+            if (exists) {
+                String[] paths = arguments[1].split("/");
+                int cluster = CurrentCluster;
+                for (int i = 1; i < paths.length; i++) {
+                    cluster = clusterOfFile(paths[i], cluster);
+                }
+                String[] newArguments = new String[]{"","."};
+                ls(newArguments, cluster);
+            } else {
+                System.out.println("Error: " + arguments[1] + " is not a directory");
+            }
+        } else {
+            try {
+                listFilesFromCluster(clusterOfFile(arguments[1], pathClusters.getLast()), pathClusters.getLast());
+            } catch (IllegalArgumentException e) {
+                System.out.println("Error: " + arguments[1] + " is not a directory");
+            }
+        }
 
     }
+
+    private static void listFilesFromCluster(int clusterNumber, int CurrentCluster) throws IllegalArgumentException {
+
+        if (clusterNumber < 0) {
+            throw new IllegalArgumentException();
+        }
+
+        List<String> directories = new ArrayList<String>();
+       
+            //Read 32 bits at a time
+            int clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+            int b = 0;
+            
+            boolean continueReading = true;
+            while(continueReading) {
+                b = 0;
+                if (CurrentCluster == 2) b+=64; //skip weirdt hing
+                while(b < 512) {
+
+                    if (myByteArray[clusterStart + b] == 0) break;    
+
+                    if (myByteArray[clusterStart + b] == 95) {
+                    break;
+                    }  
+
+                    if (myByteArray[clusterStart + b + 11] == 15) {
+                        b+=32;
+                        continue;
+                    }
+                
+                    String toAdd = "";
+        
+                    for (int i = 0; i < 8; i++) {
+                        char c = (char) myByteArray[clusterStart + b + i];
+                        if (c == 32) break;
+                        toAdd += c;
+                    }
+                    b+=8;
+                    if (myByteArray[clusterStart + b] != 32) {
+                        toAdd+=".";
+                        for (int i = 0; i < 3; i++) {
+                            toAdd += (char) myByteArray[clusterStart + b+i];
+                        }
+                    }
+                    b+=3;
+                    b+=21;
+                    directories.add(toAdd);
+                }
+
+                int tableEntryForCluster = (BPB_RsvdSecCnt * BPB_BytesPerSec + (CurrentCluster * 4));
+                ByteBuffer bb = ByteBuffer.allocate(4);
+                bb.put(myByteArray[tableEntryForCluster + 3]);
+                bb.put(myByteArray[tableEntryForCluster + 2]);
+                bb.put(myByteArray[tableEntryForCluster + 1]);
+                bb.put(myByteArray[tableEntryForCluster]);
+                bb.rewind();
+                CurrentCluster = bb.getInt();
+
+
+                if (CurrentCluster >= 268435448 && CurrentCluster <= 268435455) {
+                    continueReading = false;
+                } else {
+                    clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+                }  
+            }
+
+            if (!directories.contains(".")) directories.add(".");
+            if (!directories.contains("..")) directories.add("..");
+
+            Collections.sort(directories);
+            for (int i = 0; i < directories.size() - 1; i++) {
+                System.out.print(directories.get(i) + " ");
+            }
+            System.out.println(directories.get(directories.size()-1));
+
+    }
+
+    private static int clusterOfFile(String fileName, Integer CurrentCluster) {
+        int clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+        int b = 0;
+        boolean continueReading = true;
+        while(continueReading) {
+            b = 0;
+            if (CurrentCluster == 2) b+=64; //skip weirt hing
+            while(b < 512) {
+
+                if (myByteArray[clusterStart + b] == 0) break;    
+
+                if (myByteArray[clusterStart + b] == 95) {
+                   break;
+                }  
+                if (myByteArray[clusterStart + b + 11] == 15) {
+                    b+=32;
+                    continue;
+                }
+                String string = "";
+
+                for (int i = 0; i < 8; i++) {
+                    char c = (char) myByteArray[clusterStart + b + i];
+                    if (c == 32) break;
+                    string += c;
+                }
+                b+=8;
+                if (myByteArray[clusterStart + b] != 32) {
+                    string+=".";
+                    for (int i = 0; i < 3; i++) {
+                        string += (char) myByteArray[clusterStart + b+i];
+                    }
+                }
+                if (fileName.toUpperCase().equals(string)) {
+                    b-=8;
+                    ByteBuffer bb = ByteBuffer.allocate(4);
+                    bb.put(myByteArray[clusterStart + b + 21]);
+                    bb.put(myByteArray[clusterStart + b + 20]);
+                    bb.put(myByteArray[clusterStart + b + 27]);
+                    bb.put(myByteArray[clusterStart + b + 26]);
+                    bb.rewind();
+                    return bb.getInt(); 
+                } else {
+                    b+=24;
+                }
+
+            }
+            if (!continueReading) break;
+            int tableEntryForCluster = (BPB_RsvdSecCnt * BPB_BytesPerSec + (CurrentCluster * 4));
+            ByteBuffer bb = ByteBuffer.allocate(4);
+            bb.put(myByteArray[tableEntryForCluster + 3]);
+            bb.put(myByteArray[tableEntryForCluster + 2]);
+            bb.put(myByteArray[tableEntryForCluster + 1]);
+            bb.put(myByteArray[tableEntryForCluster]);
+            bb.rewind();
+            CurrentCluster = bb.getInt();
+
+            if (CurrentCluster >= 268435448 && CurrentCluster <= 268435455) {
+                continueReading = false;
+            } else {
+                clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+            }  
+
+        } 
+        return -1;
+    }
+
+    private static String nameOfFile(String fileName) {
+
+        int CurrentCluster = pathClusters.getLast();
+        int clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+        int b = 0;
+        boolean continueReading = true;
+        while(continueReading) {
+            b = 0;
+            if (CurrentCluster == 2) b+=64; //skip weirt hing
+            while(b < 512) {
+
+                if (myByteArray[clusterStart + b] == 0) break;    
+
+                if (myByteArray[clusterStart + b] == 95) {
+                   break;
+                }  
+                if (myByteArray[clusterStart + b + 11] == 15) {
+                    b+=32;
+                    continue;
+                }
+                String string = "";
+
+                for (int i = 0; i < 8; i++) {
+                    char c = (char) myByteArray[clusterStart + b + i];
+                    if (c == 32) break;
+                    string += c;
+                }
+                b+=8;
+                if (myByteArray[clusterStart + b] != 32) {
+                    string+=".";
+                    for (int i = 0; i < 3; i++) {
+                        string += (char) myByteArray[clusterStart + b+i];
+                    }
+                }
+                if (fileName.toUpperCase().equals(string)) {
+                    return string;                   
+                } else {
+                    b+=24;
+                }
+
+            }
+            if (!continueReading) break;
+            int tableEntryForCluster = (BPB_RsvdSecCnt * BPB_BytesPerSec + (CurrentCluster * 4));
+            ByteBuffer bb = ByteBuffer.allocate(4);
+            bb.put(myByteArray[tableEntryForCluster + 3]);
+            bb.put(myByteArray[tableEntryForCluster + 2]);
+            bb.put(myByteArray[tableEntryForCluster + 1]);
+            bb.put(myByteArray[tableEntryForCluster]);
+            bb.rewind();
+            CurrentCluster = bb.getInt();
+
+            if (CurrentCluster >= 268435448 && CurrentCluster <= 268435455) {
+                continueReading = false;
+            } else {
+                clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+            }  
+
+        } 
+        return "";
+    }
+
+    private static boolean checkPath(String path, Integer CurrentCluster) {
+        String[] splitPath = path.split("/");
+        int cluster = clusterOfFile(splitPath[1], CurrentCluster);
+        if (cluster < 0) {
+            return false;
+        } else if (splitPath.length == 2) {
+            return true;
+        } else {
+            String newPath = "";
+            for (int i = 2; i < splitPath.length; i++) {
+                newPath += "/";
+                newPath += splitPath[i];
+            }
+            return checkPath(newPath, cluster);
+        }
+    }
+
+    private static Integer directoryEntryInCluster(String fileName, Integer CurrentCluster) {
+        int clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+        int b = 0;
+
+        boolean continueReading = true;
+        while(continueReading) {   
+            b = 0;
+            while(b < 512) {
+
+                if (myByteArray[clusterStart + b] == 0) break;    
+
+                if (myByteArray[clusterStart + b] == 95) {
+                    break;
+                }  
+                if (myByteArray[clusterStart + b + 11] == 15) {
+                    b+=32;
+                    continue;
+                }
+                String string = "";
+
+                for (int i = 0; i < 8; i++) {
+                    char c = (char) myByteArray[clusterStart + b + i];
+                    if (c == 32) break;
+                    string += c;
+                }
+                b+=8;
+                if (myByteArray[clusterStart + b] != 32) {
+                    string+=".";
+                    for (int i = 0; i < 3; i++) {
+                        string += (char) myByteArray[clusterStart + b+i];
+                    }
+                }
+                if (fileName.toUpperCase().equals(string.toUpperCase())) {
+                    b-=8;
+                    ByteBuffer bb = ByteBuffer.allocate(4);
+                    bb.put(myByteArray[clusterStart + b + 21]);
+                    bb.put(myByteArray[clusterStart + b + 20]);
+                    bb.put(myByteArray[clusterStart + b + 27]);
+                    bb.put(myByteArray[clusterStart + b + 26]);
+                    bb.rewind();
+                    return clusterStart + b; 
+
+                } else {
+                    b+=24;
+                }
+            }
+
+          
+            if (!continueReading) break;
+            int tableEntryForCluster = (BPB_RsvdSecCnt * BPB_BytesPerSec + (CurrentCluster * 4));
+            ByteBuffer bb = ByteBuffer.allocate(4);
+            bb.put(myByteArray[tableEntryForCluster + 3]);
+            bb.put(myByteArray[tableEntryForCluster + 2]);
+            bb.put(myByteArray[tableEntryForCluster + 1]);
+            bb.put(myByteArray[tableEntryForCluster]);
+            bb.rewind();
+            CurrentCluster = bb.getInt();
+
+            if (CurrentCluster >= 268435448 && CurrentCluster <= 268435455) {
+                continueReading = false;
+            } else {
+                clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+            }  
+
+        }
+        return -1;
+    } 
 
 
     /**
@@ -171,8 +503,94 @@ public class fat32_reader {
      *    Error: file/directory does not exist
      *    /]
      */
-    public void stat(){
+    public static void stat(String[] arguments){
+        if (arguments.length < 2) {
+            System.out.println("Error: Not enough arguments");
+            return;
+        } else if (arguments.length > 2) {
+            System.out.println("Error: Too many arguments");
+            return;
+        }
 
+        String argument = arguments[1];
+        String[] paths = argument.split("/");
+
+        if (paths.length == 1) {
+            int cluster = pathClusters.getLast();
+            int fileStart = directoryEntryInCluster(arguments[1], cluster);
+
+            if (fileStart < 0) {
+                System.out.println("Error: file/directory does not exist");
+                return;
+            }
+            ByteBuffer bb = ByteBuffer.allocate(4);
+            bb.put(myByteArray[fileStart + 31]);
+            bb.put(myByteArray[fileStart + 30]);
+            bb.put(myByteArray[fileStart + 29]);
+            bb.put(myByteArray[fileStart + 28]);
+            bb.rewind();
+            System.out.println("Size is " + bb.getInt());
+
+            int attribute = myByteArray[fileStart + 11];
+            if (attribute == 16) {
+                System.out.println("Attributes: ATTR_DIRECTORY"); 
+            } else if (attribute == 32) {
+                System.out.println("Attributes: ATTR_ARCHIVE"); 
+            } else if (attribute == 1) {
+                System.out.println("Attributes: ATTR_READ_ONLY"); 
+            } else if (attribute == 2) {
+                System.out.println("Attributes: ATTR_HIDDEN"); 
+            } else if (attribute == 4) {
+                System.out.println("Attributes: ATTR_SYSTEM"); 
+            } else if (attribute == 8) {
+                System.out.println("Attributes: ATTR_VOLUME_ID"); 
+            }
+
+            System.out.println("Next cluster number is 0x" + Integer.toHexString(clusterOfFile(arguments[1], cluster)));
+        } else if (paths.length > 1) {
+            boolean exists = checkPath(argument, pathClusters.getLast());
+            if (exists) {
+                int cluster = pathClusters.getLast();
+                for (int i = 1; i < paths.length-1; i++) {
+                    cluster = clusterOfFile(paths[i], cluster);
+                }
+
+
+                int fileStart = directoryEntryInCluster(paths[paths.length-1], cluster);
+
+                ByteBuffer bb = ByteBuffer.allocate(4);
+                bb.put(myByteArray[fileStart + 31]);
+                bb.put(myByteArray[fileStart + 30]);
+                bb.put(myByteArray[fileStart + 29]);
+                bb.put(myByteArray[fileStart + 28]);
+                bb.rewind();
+
+                System.out.println("Size is " + bb.getInt());
+
+                int attribute = myByteArray[fileStart + 11];
+                if (attribute == 16) {
+                    System.out.println("Attributes: ATTR_DIRECTORY"); 
+                } else if (attribute == 32) {
+                    System.out.println("Attributes: ATTR_ARCHIVE"); 
+                } else if (attribute == 1) {
+                    System.out.println("Attributes: ATTR_READ_ONLY"); 
+                } else if (attribute == 2) {
+                    System.out.println("Attributes: ATTR_HIDDEN"); 
+                } else if (attribute == 4) {
+                    System.out.println("Attributes: ATTR_SYSTEM"); 
+                } else if (attribute == 8) {
+                    System.out.println("Attributes: ATTR_VOLUME_ID"); 
+
+                }
+    
+                System.out.println("Next cluster number is 0x" + Integer.toHexString(clusterOfFile(paths[paths.length-1], cluster)));
+        
+                
+            } else {
+                System.out.println("Error: file/directory does not exist");
+            }
+        }
+    
     }
 
     /**
@@ -194,7 +612,6 @@ public class fat32_reader {
 
     }
 
-
     /**
      * cd <DIR_NAME>
      * Description: For the directory at the relative or absolute path specified in DIR_NAME,
@@ -214,12 +631,49 @@ public class fat32_reader {
      *    /]
      *
      */
-    public void cd(){
+    public static void cd(String[] arguments, Integer CurrentCluster) {
+        if (arguments.length < 2) {
+            System.out.println("Error: Not enough arguments");
+            return;
+        } else if (arguments.length > 2) {
+            System.out.println("Error: Too many arguments");
+            return;
+        }
+
+        String argument = arguments[1];
+
+        if (argument.toCharArray()[0] =='/') {
+            boolean exists = checkPath(argument, pathClusters.getLast());
+            if (!exists) {
+                System.out.println("Error: " + argument + " is not a directory");
+                return;
+            } else {
+                String[] paths = argument.split("/");
+                for (int i = 1; i < paths.length; i++) {
+                    String[] newArgument = new String[]{"cd",paths[i]};
+                    cd(newArgument, pathClusters.getLast());
+                }
+            }
+        } else if (argument.equals(".")) {
+            return;
+        } else if (argument.equals("..")) {
+            if (pathNames.isEmpty()) {
+                System.out.println("Error");
+            } else {
+                pathNames.removeLast();
+                pathClusters.removeLast();
+            }
+        } else {
+            int cluster = clusterOfFile(argument, pathClusters.getLast());
+            if (cluster < 0) {
+                System.out.println(argument + " is not a directory");
+                return;
+            }
+            pathNames.add(nameOfFile(argument));
+            pathClusters.add(cluster);
+        }
 
     }
-
-
-
     /**
      * read <FILE_NAME> <OFFSET> <NUMBYTES>
      *
