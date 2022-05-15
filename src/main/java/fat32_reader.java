@@ -260,6 +260,13 @@ public class fat32_reader {
                     break;
                     }  
 
+
+                    if (myByteArray[clusterStart + b] == -27) {
+
+                        b+= 32;
+                        continue;
+                    }
+
                     if (myByteArray[clusterStart + b + 11] == 15) {
                         b+=32;
                         continue;
@@ -325,7 +332,14 @@ public class fat32_reader {
 
                 if (myByteArray[clusterStart + b] == 95) {
                    break;
-                }  
+                } 
+
+                if (myByteArray[clusterStart + b] == -27) {
+                   
+
+                    b+= 32;
+                    continue;
+                }
                 if (myByteArray[clusterStart + b + 11] == 15) {
                     b+=32;
                     continue;
@@ -394,6 +408,12 @@ public class fat32_reader {
                 if (myByteArray[clusterStart + b] == 95) {
                    break;
                 }  
+
+                if (myByteArray[clusterStart + b] == -27) {
+
+                    b+= 32;
+                    continue;
+                }
                 if (myByteArray[clusterStart + b + 11] == 15) {
                     b+=32;
                     continue;
@@ -470,6 +490,12 @@ public class fat32_reader {
                 if (myByteArray[clusterStart + b] == 95) {
                     break;
                 }  
+
+                if (myByteArray[clusterStart + b] == -27) {
+                    b+= 32;
+                    continue;
+                }
+                
                 if (myByteArray[clusterStart + b + 11] == 15) {
                     b+=32;
                     continue;
@@ -642,7 +668,47 @@ public class fat32_reader {
      *    /]
      */
 
-    
+    public static int sizeNumber(String[] arguments) {
+       
+        String argument = arguments[1];
+        if (argument.toCharArray()[0] != '/') argument = "/" + argument;
+        String[] paths = argument.split("/");
+
+        List<Integer> pathList = new ArrayList<Integer>();
+        pathList.addAll(pathClusters);
+
+        for (int i = 1; i < paths.length-1; i++) {
+            if (paths[i].equals(".")) continue;
+            else if (paths[i].equals("..")) {
+                pathList.remove(pathList.size()-1);
+            } else {
+                int toAdd = clusterOfFile(paths[i], pathList.get(pathList.size()-1));
+                pathList.add(toAdd);
+            }
+            
+        }
+
+        int fileStart = directoryEntryInCluster(paths[paths.length-1], pathList.get(pathList.size()-1));
+
+        if (fileStart < 0) {
+            return -1;
+        }
+        
+        int attribute = myByteArray[fileStart + 11];
+        if (attribute == 16) {
+            return -1;
+        } else {
+            ByteBuffer bb = ByteBuffer.allocate(4);
+            bb.put(myByteArray[fileStart + 31]);
+            bb.put(myByteArray[fileStart + 30]);
+            bb.put(myByteArray[fileStart + 29]);
+            bb.put(myByteArray[fileStart + 28]);
+            bb.rewind();
+            int size = bb.getInt();
+            return size;
+        }
+
+    }
 
     public static void size(String[] arguments){
         if (arguments.length < 2) {
@@ -881,7 +947,7 @@ public class fat32_reader {
 
         int cluster = clusterOfFile(paths[paths.length-1],  pathList.get(pathList.size()-1));
 
-        int numOfClustersForFile = 1;
+       int numOfClustersForFile = 1;
 
         boolean continueReading = true;
         int c = cluster;
@@ -905,10 +971,11 @@ public class fat32_reader {
             
         }
 
-        if (OFFSET + NUM_BYTES > numOfClustersForFile * BytesPerSectorPerCluster) {
+        if (OFFSET + NUM_BYTES > sizeNumber(arguments)) {
             System.out.println("Error: attempt to read data outside of file bounds");
             return;
-        }
+        } 
+
 
 
 
