@@ -15,6 +15,7 @@ public class fat32_reader {
 
     static short BPB_BytesPerSec, BPB_RsvdSecCnt;
     static int BPB_SecPerClus, BPB_NumFATS, BPB_FATSz32, FirstDataSector, BPB_RootClus;
+    static int BytesPerSectorPerCluster;
     static byte[] myByteArray;
     static LinkedList<Integer> pathClusters = new LinkedList<>();
     static LinkedList<String> pathNames = new LinkedList<>();
@@ -43,6 +44,8 @@ public class fat32_reader {
         BPB_BytesPerSec = bb.getShort();
 
         BPB_SecPerClus = myByteArray[13];
+
+        BytesPerSectorPerCluster = BPB_BytesPerSec*BPB_SecPerClus;
 
         bb = ByteBuffer.allocate(2);
         bb.put(myByteArray[15]);
@@ -87,12 +90,17 @@ public class fat32_reader {
             String input = scanner.nextLine(); 
             String[] arguments = input.split(" ");
             if (arguments[0].equals("stop")) stop();
-            if (arguments[0].equals("info")) info();
-            if (arguments[0].equals("ls")) ls(arguments, pathClusters.getLast());
-            if (arguments[0].equals("cd")) cd(arguments, pathClusters.getLast());
-            if (arguments[0].equals("stat")) stat(arguments);
-            if (arguments[0].equals("size")) size(arguments);
-            if (arguments[0].equals("read")) read(arguments);
+            else if (arguments[0].equals("info")) info();
+            else if (arguments[0].equals("ls")) ls(arguments, pathClusters.getLast());
+            else if (arguments[0].equals("cd")) cd(arguments, pathClusters.getLast());
+            else if (arguments[0].equals("stat")) stat(arguments);
+            else if (arguments[0].equals("size")) size(arguments);
+            else if (arguments[0].equals("read")) read(arguments);
+            else{
+                System.out.println("Error: Not a valid command");
+            }
+
+
         }
         scanner.close();
     }
@@ -215,7 +223,7 @@ public class fat32_reader {
             while(continueReading) {
                 b = 0;
                 if (CurrentCluster == 2) b+=64; //skip weirdt hing
-                while(b < 512) {
+                while(b < BytesPerSectorPerCluster) {
 
                     if (myByteArray[clusterStart + b] == 0) break;    
 
@@ -282,7 +290,7 @@ public class fat32_reader {
         while(continueReading) {
             b = 0;
             if (CurrentCluster == 2) b+=64; //skip weirt hing
-            while(b < 512) {
+            while(b < BytesPerSectorPerCluster) {
 
                 if (myByteArray[clusterStart + b] == 0) break;    
 
@@ -350,7 +358,7 @@ public class fat32_reader {
         while(continueReading) {
             b = 0;
             if (CurrentCluster == 2) b+=64; //skip weirt hing
-            while(b < 512) {
+            while(b < BytesPerSectorPerCluster) {
 
                 if (myByteArray[clusterStart + b] == 0) break;    
 
@@ -426,7 +434,7 @@ public class fat32_reader {
         boolean continueReading = true;
         while(continueReading) {   
             b = 0;
-            while(b < 512) {
+            while(b < BytesPerSectorPerCluster) {
 
                 if (myByteArray[clusterStart + b] == 0) break;    
 
@@ -811,7 +819,7 @@ public class fat32_reader {
             
         }
 
-        if (OFFSET + NUM_BYTES > numOfClustersForFile * 512) {
+        if (OFFSET + NUM_BYTES > numOfClustersForFile * BytesPerSectorPerCluster) {
             System.out.println("Error: attempt to read data outside of file bounds");
             return;
         }
@@ -819,8 +827,8 @@ public class fat32_reader {
 
 
 
-        int n = OFFSET / 512;
-        int b = OFFSET % 512;
+        int n = OFFSET / BytesPerSectorPerCluster;
+        int b = OFFSET % BytesPerSectorPerCluster;
 
         int readStart = ((cluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
         for (int i = 1; i < n; i++) {
@@ -844,7 +852,7 @@ public class fat32_reader {
         continueReading = true;
         int count = 0;
         while(continueReading) {
-            while (b < 512) {
+            while (b < BytesPerSectorPerCluster) {
                 int i = myByteArray[readStart + b];
                 if (i < 127) {
                     System.out.print((char) i);
