@@ -1,3 +1,9 @@
+//Fix all created methods to make sure they can handle .. issues like CD does
+//512 issue
+
+
+
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -668,6 +674,7 @@ public class fat32_reader {
         String[] paths = argument.split("/");
         if (argument.toCharArray()[0] == '/') {
             boolean exists = checkPath(argument, pathClusters.getLast());
+            exists = true;
             if (!exists) {
                 System.out.println("Error: " + argument + " is not a directory");
                 return;
