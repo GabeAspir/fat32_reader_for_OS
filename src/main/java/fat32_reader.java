@@ -217,7 +217,7 @@ public class fat32_reader {
                 else {
                     int toAdd = clusterOfFile(paths[i], pathList.get(pathList.size()-1));
                     if (toAdd < 0) {
-                        System.out.println("Error:" + arguments[1] + " is not a directory"); 
+                        System.out.println("Error: " + arguments[1] + " is not a directory"); 
                         return;
                     }
                     pathList.add(toAdd);
@@ -586,6 +586,16 @@ public class fat32_reader {
         }
 
         String argument = arguments[1];
+        
+        if (pathClusters.size() == 1 && argument.equals("/")) {
+            System.out.println("Size is 0");
+            System.out.println("Attributes: NONE");
+            System.out.print("Next cluster number is 0x");
+            System.out.printf("%04x", 2);
+            System.out.println();
+            return;
+        }
+
         if (argument.toCharArray()[0] != '/') argument = "/" + argument;
         String[] paths = argument.split("/");
 
@@ -596,7 +606,6 @@ public class fat32_reader {
 
         List<Integer> pathList = new ArrayList<Integer>();
         pathList.addAll(pathClusters);
-
 
         for (int i = 1; i < paths.length-1; i++) {
             if (paths[i].equals(".")) continue;
@@ -609,11 +618,20 @@ public class fat32_reader {
             else {
                 int toAdd = clusterOfFile(paths[i], pathList.get(pathList.size()-1));
                 if (toAdd < 0) {
-                    System.out.println("Error:" + arguments[1] + " is not a file"); 
+                    System.out.println("Error: " + arguments[1] + " is not a file"); 
                     return;
                 }
                 pathList.add(toAdd);
             }
+        }
+        
+        if (pathList.size() == 1) {
+            System.out.println("Size is 0");
+            System.out.println("Attributes: NONE");
+            System.out.print("Next cluster number is 0x");
+            System.out.printf("%04x", 2);
+            System.out.println();
+            return;
         }
 
 
@@ -645,7 +663,8 @@ public class fat32_reader {
             System.out.println("Attributes: ATTR_SYSTEM"); 
         } else if (attribute == 8) {
             System.out.println("Attributes: ATTR_VOLUME_ID"); 
-
+        } else {
+            System.out.println("Attributes: NONE");
         }
 
         System.out.print("Next cluster number is 0x");
@@ -698,7 +717,7 @@ public class fat32_reader {
         }
         
         int attribute = myByteArray[fileStart + 11];
-        if (attribute == 16) {
+        if (attribute == 16 || attribute == 8) {
             return -1;
         } else {
             ByteBuffer bb = ByteBuffer.allocate(4);
@@ -727,7 +746,7 @@ public class fat32_reader {
         String[] paths = argument.split("/");
 
         if (paths.length == 0) {
-            System.out.println("Error:" + arguments[1] + " is not a file"); 
+            System.out.println("Error: " + arguments[1] + " is not a file"); 
             return;
         }
 
@@ -738,14 +757,14 @@ public class fat32_reader {
             if (paths[i].equals(".")) continue;
             else if (paths[i].equals("..")) {
                 if (pathList.size() == 0) {
-                    System.out.println("Error:" + arguments[1] + " is not a file"); 
+                    System.out.println("Error: " + arguments[1] + " is not a file"); 
                     return;
                 } else pathList.remove(pathList.size()-1);
             }
             else {
                 int toAdd = clusterOfFile(paths[i], pathList.get(pathList.size()-1));
                 if (toAdd < 0) {
-                    System.out.println("Error:" + arguments[1] + " is not a file"); 
+                    System.out.println("Error: " + arguments[1] + " is not a file"); 
                     return;
                 }
                 pathList.add(toAdd);
@@ -756,12 +775,12 @@ public class fat32_reader {
         int fileStart = directoryEntryInCluster(paths[paths.length-1], pathList.get(pathList.size()-1));
 
         if (fileStart < 0) {
-            System.out.println("Error:" + arguments[1] + " is not a file"); 
+            System.out.println("Error: " + arguments[1] + " is not a file"); 
             return;
         }
         
         int attribute = myByteArray[fileStart + 11];
-        if (attribute == 16) {
+        if (attribute == 16 || attribute == 8) {
             System.out.println("Error: " + arguments[1] + " is not a file"); 
             return;
         } else {
@@ -921,14 +940,14 @@ public class fat32_reader {
             if (paths[i].equals(".")) continue;
             else if (paths[i].equals("..")) {
                 if (pathList.size() == 0) {
-                    System.out.println("Error:" + arguments[1] + " is not a file");
+                    System.out.println("Error: " + arguments[1] + " is not a file");
                     return;
                 } else pathList.remove(pathList.size()-1);
             }
             else {
                 int toAdd = clusterOfFile(paths[i], pathList.get(pathList.size()-1));
                 if (toAdd < 0) {
-                    System.out.println("Error:" + arguments[1] + " is not a file"); 
+                    System.out.println("Error: " + arguments[1] + " is not a file"); 
                     return;
                 }
                 pathList.add(toAdd);
@@ -938,12 +957,12 @@ public class fat32_reader {
         int fileEntry = directoryEntryInCluster(paths[paths.length-1], pathList.get(pathList.size()-1));
 
         if (fileEntry < 0) {
-            System.out.println("Error:" + arguments[1] + " is not a file"); 
+            System.out.println("Error: " + arguments[1] + " is not a file"); 
             return;
         }
         
         int attribute = myByteArray[fileEntry + 11];
-        if (attribute == 16) {
+        if (attribute == 16 || attribute == 8) {
             System.out.println("Error: " + arguments[1] + " is not a file"); 
             return;
         }
