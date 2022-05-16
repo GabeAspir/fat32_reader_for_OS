@@ -89,9 +89,12 @@ public class fat32_reader {
 
 
         while(running){
+            System.out.print("/");
             if (!pathNames.isEmpty()) {
+                for (int i = 0; i < pathNames.size()-1; i++) System.out.print(pathNames.get(i) + "/");
                 System.out.print(pathNames.getLast());
             }
+            
             System.out.print("] ");
             String input = scanner.nextLine(); 
             String[] arguments = input.split(" ");
