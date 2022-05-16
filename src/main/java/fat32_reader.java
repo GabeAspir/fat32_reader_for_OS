@@ -162,7 +162,7 @@ public class fat32_reader {
      * lists the contents of DIR_NAME,
      * including “.” and “..”, and including hidden files
      * (in other words, it should behave like the real “ls -a”).
-     * Display an error message if DIR_NAME is not a directory.
+     * Display an Error:message if DIR_NAME is not a directory.
      * Like the “real” ls -a, "." and ".." are shown for all directories,
      * even the root directory (despite the fact that “..” is meaningless for the root directory).
      * Like the “real” ls -a, your output should be alphabetically sorted
@@ -199,7 +199,7 @@ public class fat32_reader {
             String[] paths = argument.split("/");
     
             if (paths.length == 0) {
-                System.out.println("Error " + arguments[1] + " is not a directory"); 
+                System.out.println("Error: " + arguments[1] + " is not a directory"); 
                 return;
             }
     
@@ -211,14 +211,14 @@ public class fat32_reader {
                 if (paths[i].equals(".")) continue;
                 else if (paths[i].equals("..")) {
                     if (pathList.size() == 0) {
-                        System.out.println("Error " + arguments[1] + " is not a directory");
+                        System.out.println("Error: " + arguments[1] + " is not a directory");
                         return;
                     } else pathList.remove(pathList.size()-1);
                 }
                 else {
                     int toAdd = clusterOfFile(paths[i], pathList.get(pathList.size()-1));
                     if (toAdd < 0) {
-                        System.out.println("Error " + arguments[1] + " is not a directory"); 
+                        System.out.println("Error:" + arguments[1] + " is not a directory"); 
                         return;
                     }
                     pathList.add(toAdd);
@@ -560,7 +560,7 @@ public class fat32_reader {
      * specified in FILE_NAME or DIR_NAME, prints the size of the file or directory,
      * the attributes of the file or directory,
      * and the first cluster number of the file or directory.
-     * Return an error if FILE_NAME/DIR_NAME does not exist (see example below).
+     * Return an Error:if FILE_NAME/DIR_NAME does not exist (see example below).
      * (Note: The size of a directory will always be zero.)
      * If a file has more than one Attributes,
      * print them space delimited,
@@ -610,7 +610,7 @@ public class fat32_reader {
             else {
                 int toAdd = clusterOfFile(paths[i], pathList.get(pathList.size()-1));
                 if (toAdd < 0) {
-                    System.out.println("Error " + arguments[1] + " is not a file"); 
+                    System.out.println("Error:" + arguments[1] + " is not a file"); 
                     return;
                 }
                 pathList.add(toAdd);
@@ -660,7 +660,7 @@ public class fat32_reader {
      * size <FILE_NAME>
      *
      * Description: For the file at the relative or absolute path specified in FILE_NAME, prints the size of file.
-     * Return an error if FILE_NAME does not exist or is not a file. Sample execution:
+     * Return an Error:if FILE_NAME does not exist or is not a file. Sample execution:
      *    /] size FOLDER1/FILE.TXT
      *    Size of FOLDER1/FILE.TXT is 42376 bytes
      *    /]
@@ -728,7 +728,7 @@ public class fat32_reader {
         String[] paths = argument.split("/");
 
         if (paths.length == 0) {
-            System.out.println("Error " + arguments[1] + " is not a file"); 
+            System.out.println("Error:" + arguments[1] + " is not a file"); 
             return;
         }
 
@@ -739,14 +739,14 @@ public class fat32_reader {
             if (paths[i].equals(".")) continue;
             else if (paths[i].equals("..")) {
                 if (pathList.size() == 0) {
-                    System.out.println("Error " + arguments[1] + " is not a file"); 
+                    System.out.println("Error:" + arguments[1] + " is not a file"); 
                     return;
                 } else pathList.remove(pathList.size()-1);
             }
             else {
                 int toAdd = clusterOfFile(paths[i], pathList.get(pathList.size()-1));
                 if (toAdd < 0) {
-                    System.out.println("Error " + arguments[1] + " is not a file"); 
+                    System.out.println("Error:" + arguments[1] + " is not a file"); 
                     return;
                 }
                 pathList.add(toAdd);
@@ -757,7 +757,7 @@ public class fat32_reader {
         int fileStart = directoryEntryInCluster(paths[paths.length-1], pathList.get(pathList.size()-1));
 
         if (fileStart < 0) {
-            System.out.println("Error " + arguments[1] + " is not a file"); 
+            System.out.println("Error:" + arguments[1] + " is not a file"); 
             return;
         }
         
@@ -783,7 +783,7 @@ public class fat32_reader {
      * Description: For the directory at the relative or absolute path specified in DIR_NAME,
      * changes the current directory to DIR_NAME.
      * The prompt is updated to show the new current directory.
-     * Return an error if DIR_NAME does not exist or is not a directory.
+     * Return an Error:if DIR_NAME does not exist or is not a directory.
      * Sample execution:
      *    /] cd FOLDER1
      *    /FOLDER1]
@@ -854,7 +854,7 @@ public class fat32_reader {
      *       and prints NUM_BYTES bytes of the file’s contents,
      *       interpreted asASCIItext(foreachbyte,ifthebyteislessthandecimal127,printthecorrespondingasciicharacter. Else, print " 0xNN ", where NN is the hex value of the byte).
      *
-     *       Return an error when trying to read an unopened file, a nonexistent file, or read data outside the file. Sample execution:
+     *       Return an Error:when trying to read an unopened file, a nonexistent file, or read data outside the file. Sample execution:
      *
      *       Successful read
      *       /] read CONST.TXT 0 15
@@ -922,14 +922,14 @@ public class fat32_reader {
             if (paths[i].equals(".")) continue;
             else if (paths[i].equals("..")) {
                 if (pathList.size() == 0) {
-                    System.out.println("Error " + arguments[1] + " is not a file");
+                    System.out.println("Error:" + arguments[1] + " is not a file");
                     return;
                 } else pathList.remove(pathList.size()-1);
             }
             else {
                 int toAdd = clusterOfFile(paths[i], pathList.get(pathList.size()-1));
                 if (toAdd < 0) {
-                    System.out.println("Error " + arguments[1] + " is not a file"); 
+                    System.out.println("Error:" + arguments[1] + " is not a file"); 
                     return;
                 }
                 pathList.add(toAdd);
@@ -939,7 +939,7 @@ public class fat32_reader {
         int fileEntry = directoryEntryInCluster(paths[paths.length-1], pathList.get(pathList.size()-1));
 
         if (fileEntry < 0) {
-            System.out.println("Error " + arguments[1] + " is not a file"); 
+            System.out.println("Error:" + arguments[1] + " is not a file"); 
             return;
         }
         
