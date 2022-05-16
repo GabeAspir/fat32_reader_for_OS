@@ -248,7 +248,7 @@ public class fat32_reader {
         List<String> directories = new ArrayList<String>();
        
             //Read 32 bits at a time
-            int clusterStart = (((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec));
+            int clusterStart = (((CurrentCluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec));
             int b = 0;
             
             boolean continueReading = true;
@@ -307,7 +307,7 @@ public class fat32_reader {
                 if (CurrentCluster >= 268435448 && CurrentCluster <= 268435455) {
                     continueReading = false;
                 } else {
-                    clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+                    clusterStart = ((CurrentCluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec);
                 }  
             }
 
@@ -323,7 +323,7 @@ public class fat32_reader {
     }
 
     private static int clusterOfFile(String fileName, Integer CurrentCluster) {
-        int clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+        int clusterStart = ((CurrentCluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec);
         int b = 0;
         boolean continueReading = true;
         while(continueReading) {
@@ -388,7 +388,7 @@ public class fat32_reader {
             if (CurrentCluster >= 268435448 && CurrentCluster <= 268435455) {
                 continueReading = false;
             } else {
-                clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+                clusterStart = ((CurrentCluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec);
             }  
 
         } 
@@ -398,7 +398,7 @@ public class fat32_reader {
     private static String nameOfFile(String fileName) {
 
         int CurrentCluster = pathClusters.getLast();
-        int clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+        int clusterStart = ((CurrentCluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec);
         int b = 0;
         boolean continueReading = true;
         while(continueReading) {
@@ -455,7 +455,7 @@ public class fat32_reader {
             if (CurrentCluster >= 268435448 && CurrentCluster <= 268435455) {
                 continueReading = false;
             } else {
-                clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+                clusterStart = ((CurrentCluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec);
             }  
 
         } 
@@ -480,7 +480,7 @@ public class fat32_reader {
     }
 
     private static Integer directoryEntryInCluster(String fileName, Integer CurrentCluster) {
-        int clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+        int clusterStart = ((CurrentCluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec);
         int b = 0;
 
         boolean continueReading = true;
@@ -546,7 +546,7 @@ public class fat32_reader {
             if (CurrentCluster >= 268435448 && CurrentCluster <= 268435455) {
                 continueReading = false;
             } else {
-                clusterStart = ((CurrentCluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+                clusterStart = ((CurrentCluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec);
             }  
 
         }
@@ -987,7 +987,7 @@ public class fat32_reader {
         int n = OFFSET / BytesPerSectorPerCluster;
         int b = OFFSET % BytesPerSectorPerCluster;
 
-        int readStart = ((cluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+        int readStart = ((cluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec);
         for (int i = 1; i < n; i++) {
             int tableEntryForCluster = (BPB_RsvdSecCnt * BPB_BytesPerSec + (cluster * 4));
             ByteBuffer bb = ByteBuffer.allocate(4);
@@ -1002,7 +1002,7 @@ public class fat32_reader {
                 System.out.println("Error: attempt to read data outside of file bounds");
                 return;
             } else {
-                readStart = ((cluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+                readStart = ((cluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec);
             }
         }
 
@@ -1037,7 +1037,7 @@ public class fat32_reader {
             if (cluster >= 268435448 && cluster <= 268435455) {
                 continueReading = false;
             } else {
-                readStart = ((cluster-2)*BPB_BytesPerSec) + (FirstDataSector * BPB_BytesPerSec);
+                readStart = ((cluster-2)*BytesPerSectorPerCluster) + (FirstDataSector * BPB_BytesPerSec);
 
             }  
 
