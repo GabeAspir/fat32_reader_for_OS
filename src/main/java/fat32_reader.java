@@ -177,12 +177,11 @@ public class fat32_reader {
      *    /]
      */
     public static void ls(String[] arguments, Integer CurrentCluster){
-        if (arguments.length < 2) {
-            System.out.println("Error: Not enough arguments");
-            return;
-        } else if (arguments.length > 2) {
+        if (arguments.length > 2) {
             System.out.println("Error: Too many arguments");
             return;
+        } else if (arguments.length == 1) {
+            listFilesFromCluster(pathClusters.getLast(), CurrentCluster);
         } else if (arguments[1].equals(".")) {
             listFilesFromCluster(pathClusters.getLast(), CurrentCluster);
         }  else if (arguments[1].equals("..")) {
