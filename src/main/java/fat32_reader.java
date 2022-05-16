@@ -649,8 +649,9 @@ public class fat32_reader {
 
         }
 
-        System.out.println("Next cluster number is 0x" + Integer.toHexString(clusterOfFile(paths[paths.length-1], pathList.get(pathList.size()-1))));
-    
+        System.out.print("Next cluster number is 0x");
+        System.out.printf("%04x", clusterOfFile(paths[paths.length-1], pathList.get(pathList.size()-1)));
+        System.out.println();
         
     } 
     
