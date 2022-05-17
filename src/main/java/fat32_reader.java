@@ -606,6 +606,20 @@ public class fat32_reader {
             System.out.printf("%04x", 2);
             System.out.println();
             return;
+        } else if (pathClusters.size() == 1 && argument.equals(".")) {
+            System.out.println("Size is 0");
+            System.out.println("Attributes: NONE");
+            System.out.print("Next cluster number is 0x");
+            System.out.printf("%04x", 2);
+            System.out.println();
+            return;
+        } else if (pathClusters.size() == 1 && argument.equals("..")) {
+            System.out.println("Size is 0");
+            System.out.println("Attributes: NONE");
+            System.out.print("Next cluster number is 0x");
+            System.out.printf("%04x", 2);
+            System.out.println();
+            return;
         }
 
         if (argument.toCharArray()[0] != '/') argument = "/" + argument;
@@ -637,19 +651,20 @@ public class fat32_reader {
             }
         }
         
-        if (pathList.size() == 1) {
-            System.out.println("Size is 0");
-            System.out.println("Attributes: NONE");
-            System.out.print("Next cluster number is 0x");
-            System.out.printf("%04x", 2);
-            System.out.println();
-            return;
-        }
+       
+          
 
 
         int fileStart = directoryEntryInCluster(paths[paths.length-1], pathList.get(pathList.size()-1));
         if (fileStart < 0) {
             System.out.println("Error: file/directory does not exist");
+            return;
+        } else if (fileStart == 1096736) {
+            System.out.println("Size is 0");
+            System.out.println("Attributes: NONE");
+            System.out.print("Next cluster number is 0x");
+            System.out.printf("%04x", 2);
+            System.out.println();
             return;
         }
 
