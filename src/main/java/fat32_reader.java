@@ -1,5 +1,12 @@
-//Fix all created methods to make sure they can handle .. issues like CD does
 //512 issue
+/*
+-How many late passes do we have?
+-README format? Any specifics to for sure include?
+1. How should we handle no input from cmd line? Do a println
+2. Is a byte array ok for this assignment? the methoid readAllBytes works guaranteed up to 2 GB
+3. How do i create a new fat?
+
+ */
 
 
 
@@ -33,6 +40,11 @@ public class fat32_reader {
         args[0] will be the .img
         Sooo, what to do with that
          */
+        if(args.length<1){
+            System.out.println("Error: Must have a .img file as the first and only paramater");
+            return;
+        }
+
         File file = new File(args[0]);
         String filePath = file.getAbsolutePath();
         Path path = Paths.get(filePath);
